@@ -1,18 +1,38 @@
 open Spectre.Console
+open Argu
 
-let items = [ 0.; 0.; 2.; 4.; 5.; 3.; 8.; 6.; 4. ]
+type Arguments =
+    | [<Mandatory>] Inputs of float list
+    | K of int
+    interface IArgParserTemplate with
+        member this.Usage =
+            match this with
+            | Inputs _ -> "input set of data."
+            | K _ -> "size of the window."
 
-let results =
-    items
-    |> List.windowed 3
-    |> List.map (fun numbers -> Seq.last numbers, List.average numbers)
+[<EntryPoint>]
+let main argv =
+    let items, k =
+        let results =
+            ArgumentParser
+                .Create<Arguments>()
+                .ParseCommandLine argv
 
-let table =
-    Table()
-        .AddColumns("Value", "Simple Moving Average")
+        results.GetResult Inputs, results.GetResult(K, 3)
 
-for value, average in results do
-    table.AddRow(value.ToString(), average.ToString "F2")
-    |> ignore
+    let results =
+        items
+        |> List.windowed k
+        |> List.map (fun numbers -> Seq.last numbers, List.average numbers)
 
-AnsiConsole.Render table
+    let table =
+        Table()
+            .AddColumns("Value", "Simple Moving Average")
+
+    for value, average in results do
+        table.AddRow(value.ToString(), average.ToString "F2")
+        |> ignore
+
+    AnsiConsole.Render table |> ignore
+
+    0
